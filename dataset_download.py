@@ -96,7 +96,7 @@ class Stock():
             
             
 class Config:
-    start = '2015-01-01'
+    start = '2007-01-01'
     end = '2020-12-01'
     interval = '1d'
     
@@ -104,8 +104,9 @@ config = Config()
 stock = Stock(['SPY'],config)
 
 from ta import add_momentum_ta,add_trend_ta
-# df = add_momentum_ta(stock.clean_data,high="High", low="Low", close="Close", volume="Volume", fillna=True)
+df = stock.clean_data
+# df = add_momentum_ta(df,high="High", low="Low", close="Close", volume="Volume", fillna=True)
 # df = add_trend_ta(df,high="High", low="Low", close="Close", fillna=True)
 # df = add_all_ta_features(stock.clean_data, open="Open", high="High", low="Low", close="Close", volume="Volume", fillna=True)
-df = stock.clean_data
+
 df.to_csv('data/SPY.csv')

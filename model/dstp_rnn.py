@@ -27,10 +27,10 @@ class Encoder(nn.Module):
         
         # Fig 1. Temporal Attention Mechanism: Encoder is LSTM
         self.encoder_lstm = nn.LSTM(
-            input_size=self.input_size, hidden_size=self.encoder_num_hidden)
+            input_size=self.input_size, hidden_size=self.encoder_num_hidden,dropout=0.2)
 
         self.encoder_lstm2 = nn.LSTM(
-            input_size=self.input_size, hidden_size=self.encoder_num_hidden)
+            input_size=self.input_size, hidden_size=self.encoder_num_hidden,dropout=0.2)
 
         # Construct Input Attention Mechanism via deterministic attention model
         # Eq. 8: W_e[h_{t-1}; s_{t-1}] + U_e * x^k
@@ -160,7 +160,7 @@ class Decoder(nn.Module):
                                         nn.Tanh(),
                                         nn.Linear(encoder_num_hidden, 1))
         self.lstm_layer = nn.LSTM(
-            input_size=1, hidden_size=decoder_num_hidden)
+            input_size=1, hidden_size=decoder_num_hidden,dropout=0.2)
         self.fc = nn.Linear(encoder_num_hidden + 1, 1)
         self.fc_final_price = nn.Linear(decoder_num_hidden + encoder_num_hidden, 1)
         
@@ -215,7 +215,48 @@ class Decoder(nn.Module):
         initial_states = X.data.new(
             1, X.size(0), self.decoder_num_hidden).zero_()
         return initial_states
-        
+ 
+# class LogCoshLoss(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+
+#     def forward(self, y_t, y_prime_t):
+#         ey_t = y_t - y_prime_t
+#         return torch.mean(torch.log(torch.cosh(ey_t + 1e-12)))
+
+def apply_reduction(losses, reduction="none"):
+    if reduction == "mean":
+        losses = losses.mean()
+    elif reduction == "sum":
+        losses = losses.sum()
+    return losses
+   
+class LogCoshLoss(nn.Module):
+    """Log-cosh loss function module. 
+    
+    See [Chen et al., 2019](https://openreview.net/forum?id=rkglvsC9Ym).
+    Args:
+        a (float, optional): Smoothness hyperparameter. Smaller is smoother. Default: 1.0
+        eps (float, optional): Small epsilon value for stablity. Default: 1e-8
+        reduction (string, optional): Specifies the reduction to apply to the output:
+            'none': no reduction will be applied,
+            'mean': the sum of the output will be divided by the number of elements in the output, 
+            'sum': the output will be summed. Default: 'mean'
+    Shape:
+        - input : :math:`(batch, nchs, ...)`.
+        - target: :math:`(batch, nchs, ...)`.
+    """
+    def __init__(self, a=1.0, eps=1e-8, reduction='mean'):
+        super(LogCoshLoss, self).__init__()
+        self.a = a
+        self.eps = eps
+        self.reduction = reduction
+
+    def forward(self, input, target):
+        losses = ((1/self.a) * torch.log(torch.cosh(self.a * (input - target)) + self.eps)).mean(-1)
+        losses = apply_reduction(losses, self.reduction)
+        return losses
+    
 class DSTP_rnn(nn.Module):
     
 
@@ -228,6 +269,7 @@ class DSTP_rnn(nn.Module):
                  learning_rate_decay_alpha = 0.99,
                  learning_rate_plateau_alpha = 0.7,
                  learning_rate_plateau_patience = 50,
+                 loss = 'mse',
                  parallel=False):
        
         super().__init__()
@@ -250,7 +292,12 @@ class DSTP_rnn(nn.Module):
         self.Encoder = self.Encoder.cuda()
         self.Decoder = self.Decoder.cuda()
         # Loss function
-        self.criterion_price = nn.MSELoss()
+        if loss == 'mse':
+            self.criterion_price = nn.MSELoss()
+        elif loss == 'mae':
+            self.criterion_price = nn.L1Loss()
+        elif loss =='logcosh':
+            self.criterion_price = LogCoshLoss(a=1e-2)
         
     
 

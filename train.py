@@ -14,7 +14,7 @@ df['Date'] = pd.to_datetime(df['Date'])
 df.set_index('Date',inplace=True)
 
 T = 10
-batch_size = 128
+batch_size = 256
 encoder_hidden = 128
 decoder_hidden = 128
 learning_rate = 0.01
@@ -23,7 +23,7 @@ weight_decay = 0
 device = 'cuda'
 
 dataset = TimeSeriesDataset(df,[],'Close',T,1)
-train_loader, test_loader = dataset.get_loaders(batch_size)
+train_loader, test_loader = dataset.get_loaders(batch_size,train_shuffle=True)
 
 sample = list(train_loader)[0]
 print(sample.X[0])
@@ -41,8 +41,9 @@ model = DSTP_rnn(input_size,T,
                  weight_decay,
                  learning_rate_decay_step = 100,
                  learning_rate_decay_alpha = 0.99,
-                 learning_rate_plateau_alpha = 0.9,
-                 learning_rate_plateau_patience = 50)
+                 learning_rate_plateau_alpha = 0.95,
+                 learning_rate_plateau_patience = 10,
+                 loss = 'logcosh')
 
 
 def evaluate(model : DSTP_rnn,data_loader : DataLoader,epoch = -1):
@@ -124,8 +125,8 @@ def train(epoch : int,train_loader: DataLoader,test_loader:DataLoader):
         end_time = time.time()
         
         if i % 10 == 0:
-            print("Epoch %d: %.5f, Time is %.2fs\n" % (i, epoch_loss, end_time - start_time), flush=True)
-            print("Learning Rate %f"%(model.encoder_optimizer.param_groups[0]['lr']))
+            print("\n Epoch %d: %.5f, Time is %.2fs\n Learning Rate: %f \n" % (i, epoch_loss, end_time - start_time,model.encoder_optimizer.param_groups[0]['lr']), flush=True)
+            # print("Learning Rate %f"%(model.encoder_optimizer.param_groups[0]['lr']))
             
         if i % 1000 == 0 and i!=0 :
               torch.save(model.state_dict(), 'dstprnn_model_{}.pkl'.format(epoch))
