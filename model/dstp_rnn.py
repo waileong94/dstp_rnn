@@ -227,6 +227,7 @@ class DSTP_rnn(nn.Module):
                  learning_rate_decay_step = 100,
                  learning_rate_decay_alpha = 0.99,
                  learning_rate_plateau_alpha = 0.7,
+                 learning_rate_plateau_patience = 50,
                  parallel=False):
        
         super().__init__()
@@ -270,8 +271,8 @@ class DSTP_rnn(nn.Module):
         self.encoder_step_scheduler = StepLR(self.encoder_optimizer, step_size = learning_rate_decay_step,gamma = learning_rate_decay_alpha)
         self.decoder_step_scheduler = StepLR(self.decoder_optimizer, step_size = learning_rate_decay_step,gamma = learning_rate_decay_alpha)
 
-        self.encoder_plateau_scheduler = ReduceLROnPlateau(self.encoder_optimizer, 'min',factor=learning_rate_plateau_alpha)
-        self.decoder_plateau_scheduler = ReduceLROnPlateau(self.decoder_optimizer, 'min',factor=learning_rate_plateau_alpha)
+        self.encoder_plateau_scheduler = ReduceLROnPlateau(self.encoder_optimizer, 'min',factor=learning_rate_plateau_alpha,patience = learning_rate_plateau_patience)
+        self.decoder_plateau_scheduler = ReduceLROnPlateau(self.decoder_optimizer, 'min',factor=learning_rate_plateau_alpha,patience = learning_rate_plateau_patience)
         
     def train_forward(self, X, y_prev, y_gt):
         # zero gradients

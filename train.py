@@ -39,9 +39,10 @@ model = DSTP_rnn(input_size,T,
                  decoder_hidden,
                  learning_rate,
                  weight_decay,
-                 learning_rate_decay_step = 50,
+                 learning_rate_decay_step = 100,
                  learning_rate_decay_alpha = 0.99,
-                 learning_rate_plateau_alpha = 0.9)
+                 learning_rate_plateau_alpha = 0.9,
+                 learning_rate_plateau_patience = 50)
 
 
 def evaluate(model : DSTP_rnn,data_loader : DataLoader,epoch = -1):
