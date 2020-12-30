@@ -110,7 +110,7 @@ class TimeSeriesDataset(object):
         # results = Feature(*(default_collate(samples) for samples in zip(*batch)))
         return batch
     
-    def get_loaders(self, batch_size: int):
+    def get_loaders(self, batch_size: int,train_shuffle: bool = False,test_shuffle : bool = False):
         '''
         Preprocess and frame the dataset
         :param batch_size: batch size
@@ -121,8 +121,8 @@ class TimeSeriesDataset(object):
         train_dataset = self.frame_series(X_train, y_train)
         test_dataset = self.frame_series(X_test, y_test)
 
-        train_iter = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, drop_last=True)
-        test_iter = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, drop_last=False)
+        train_iter = DataLoader(train_dataset, batch_size=batch_size, shuffle=train_shuffle, drop_last=True)
+        test_iter = DataLoader(test_dataset, batch_size=batch_size, shuffle=test_shuffle, drop_last=False)
         return train_iter, test_iter
 
 
