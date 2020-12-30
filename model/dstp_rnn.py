@@ -30,7 +30,7 @@ class Encoder(nn.Module):
             input_size=self.input_size, hidden_size=self.encoder_num_hidden,dropout=0.2)
 
         self.encoder_lstm2 = nn.LSTM(
-            input_size=self.input_size, hidden_size=self.encoder_num_hidden,dropout=0.2)
+            input_size=self.input_size, hidden_size=self.encoder_num_hidden)
 
         # Construct Input Attention Mechanism via deterministic attention model
         # Eq. 8: W_e[h_{t-1}; s_{t-1}] + U_e * x^k
@@ -160,7 +160,7 @@ class Decoder(nn.Module):
                                         nn.Tanh(),
                                         nn.Linear(encoder_num_hidden, 1))
         self.lstm_layer = nn.LSTM(
-            input_size=1, hidden_size=decoder_num_hidden,dropout=0.2)
+            input_size=1, hidden_size=decoder_num_hidden)
         self.fc = nn.Linear(encoder_num_hidden + 1, 1)
         self.fc_final_price = nn.Linear(decoder_num_hidden + encoder_num_hidden, 1)
         
