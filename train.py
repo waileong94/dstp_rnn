@@ -9,15 +9,15 @@ import time
 
 import matplotlib.pyplot as plt
 
-df = pd.read_csv(r'data/BTCUSDT.csv')
+df = pd.read_csv(r'data/SPY.csv')
 df['Date'] = pd.to_datetime(df['Date'])
 df.set_index('Date',inplace=True)
 
 T = 10
-batch_size = 256
+batch_size = 128
 encoder_hidden = 128
 decoder_hidden = 128
-learning_rate = 0.001
+learning_rate = 0.01
 epoch = 7000
 weight_decay = 0
 device = 'cuda'
@@ -34,7 +34,14 @@ print(sample.y_prev.shape)
 print(sample.y_target.shape)
 input_size = dataset.input_size
 
-model = DSTP_rnn(input_size,T,encoder_hidden,decoder_hidden,learning_rate,weight_decay)
+model = DSTP_rnn(input_size,T,
+                 encoder_hidden,
+                 decoder_hidden,
+                 learning_rate,
+                 weight_decay,
+                 learning_rate_decay_step = 50,
+                 learning_rate_decay_alpha = 0.99,
+                 learning_rate_plateau_alpha = 0.9)
 
 
 def evaluate(model : DSTP_rnn,data_loader : DataLoader,epoch = -1):
@@ -105,21 +112,30 @@ def train(epoch : int,train_loader: DataLoader,test_loader:DataLoader):
        
             model.encoder_optimizer.step()
             model.decoder_optimizer.step()
-            model.zero_grad()
             
+            model.zero_grad()
+ 
+        model.encoder_step_scheduler.step()
+        model.decoder_step_scheduler.step()
+        
+        model.encoder_plateau_scheduler.step(epoch_loss)
+        model.decoder_plateau_scheduler.step(epoch_loss)
         end_time = time.time()
         
         if i % 10 == 0:
             print("Epoch %d: %.5f, Time is %.2fs\n" % (i, epoch_loss, end_time - start_time), flush=True)
+            print("Learning Rate %f"%(model.encoder_optimizer.param_groups[0]['lr']))
+            
         if i % 1000 == 0 and i!=0 :
               torch.save(model.state_dict(), 'dstprnn_model_{}.pkl'.format(epoch))
               
         if i % 50 == 0 and i != 0:
             evaluate(model,test_loader,epoch = i)
 
-        if i % 100 == 0 and i != 0:
-            for param_group in model.encoder_optimizer.param_groups:
-                param_group['lr'] = param_group['lr'] * 0.95
-            for param_group in model.decoder_optimizer.param_groups:
-                param_group['lr'] = param_group['lr'] * 0.95
+        # if i % 100 == 0 and i != 0:
+        #     for param_group in model.encoder_optimizer.param_groups:
+        #         param_group['lr'] = param_group['lr'] * 0.95
+        #     for param_group in model.decoder_optimizer.param_groups:
+        #         param_group['lr'] = param_group['lr'] * 0.95
                 
+train(epoch,train_loader,test_loader)

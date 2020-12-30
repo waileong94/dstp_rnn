@@ -7,6 +7,9 @@ from torch import nn
 from torch import optim
 import torch.nn.functional as F
 
+from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau
+
+
 class Encoder(nn.Module):
     
 
@@ -221,6 +224,9 @@ class DSTP_rnn(nn.Module):
                  decoder_num_hidden,
                  learning_rate,
                  weight_decay = 0,
+                 learning_rate_decay_step = 100,
+                 learning_rate_decay_alpha = 0.99,
+                 learning_rate_plateau_alpha = 0.7,
                  parallel=False):
        
         super().__init__()
@@ -260,6 +266,12 @@ class DSTP_rnn(nn.Module):
                                                           self.Decoder.parameters()),
                                             lr=self.learning_rate,
                                             weight_decay = self.weight_decay)
+        
+        self.encoder_step_scheduler = StepLR(self.encoder_optimizer, step_size = learning_rate_decay_step,gamma = learning_rate_decay_alpha)
+        self.decoder_step_scheduler = StepLR(self.decoder_optimizer, step_size = learning_rate_decay_step,gamma = learning_rate_decay_alpha)
+
+        self.encoder_plateau_scheduler = ReduceLROnPlateau(self.encoder_optimizer, 'min',factor=learning_rate_plateau_alpha)
+        self.decoder_plateau_scheduler = ReduceLROnPlateau(self.decoder_optimizer, 'min',factor=learning_rate_plateau_alpha)
         
     def train_forward(self, X, y_prev, y_gt):
         # zero gradients
